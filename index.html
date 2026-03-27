@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pitch Pre-Mortem — MATTER</title>
+<style>
+:root {
+  --dark: #000000;
+  --light: #FFFFFF;
+  --muted: rgba(0,0,0,0.45);
+  --muted-inv: rgba(255,255,255,0.5);
+  --border: rgba(0,0,0,0.12);
+  --border-strong: rgba(0,0,0,0.25);
+  --surface: #F9F8F5;
+  --serif: 'Times New Roman', Times, serif;
+  --sans: Arial, Helvetica, sans-serif;
+  --mono: 'Courier New', monospace;
+  --radius: 2px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { background: var(--light); }
+body { font-family: var(--sans); background: var(--light); color: var(--dark); min-height: 100vh; }
+
+/* HEADER — dark */
+.header {
+  background: var(--dark); padding: 0 2.5rem; height: 60px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+}
+.header-left { display: flex; align-items: center; gap: 20px; }
+.logo { font-family: var(--serif); font-size: 18px; color: var(--light); letter-spacing: 0.05em; font-weight: normal; }
+.header-divider { width: 0.5px; height: 20px; background: rgba(255,255,255,0.2); }
+.header-title { font-family: var(--mono); font-size: 11px; color: var(--muted-inv); letter-spacing: 0.08em; text-transform: uppercase; }
+.header-right { font-family: var(--mono); font-size: 10px; color: var(--muted-inv); letter-spacing: 0.06em; }
+
+/* NAV */
+.nav {
+  background: var(--light); border-bottom: 1px solid var(--dark);
+  padding: 0 2.5rem; display: flex; overflow-x: auto;
+}
+.nav-tab {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 16px 20px; cursor: pointer; border: none; background: transparent;
+  color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px;
+  transition: all 0.15s; white-space: nowrap;
+}
+.nav-tab:hover { color: var(--dark); }
+.nav-tab.active { color: var(--dark); border-bottom-color: var(--dark); }
+
+/* MAIN */
+.main { max-width: 800px; margin: 0 auto; padding: 3rem 2.5rem 5rem; }
+.phase { display: none; }
+.phase.visible { display: block; }
+
+/* INTRO — dark hero */
+.intro {
+  background: var(--dark); padding: 3rem 2.5rem; margin-bottom: 3rem;
+}
+.intro-eyebrow { font-family: var(--mono); font-size: 10px; color: var(--muted-inv); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 1.5rem; }
+.intro h1 { font-family: var(--serif); font-size: 42px; color: var(--light); font-weight: normal; line-height: 1.15; margin-bottom: 1.25rem; }
+.intro p { font-family: var(--sans); font-size: 14px; color: var(--muted-inv); line-height: 1.75; max-width: 520px; }
+
+/* SECTION LABEL */
+.label {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em;
+  color: var(--muted); text-transform: uppercase; margin-bottom: 12px;
+  display: flex; align-items: center; gap: 12px;
+}
+.label::after { content: ''; flex: 1; height: 0.5px; background: var(--border-strong); }
+
+/* CARD */
+.card {
+  border: 1px solid var(--dark); background: var(--light);
+  padding: 1.75rem; margin-bottom: 1.5rem;
+}
+.card-dark { background: var(--dark); border: 1px solid var(--dark); padding: 1.75rem; margin-bottom: 1.5rem; }
+
+/* STEPS */
+.step { display: flex; gap: 20px; padding: 18px 0; border-bottom: 0.5px solid var(--border); }
+.step:last-child { border-bottom: none; padding-bottom: 0; }
+.step:first-child { padding-top: 0; }
+.step-num { font-family: var(--mono); font-size: 10px; color: var(--muted); width: 22px; flex-shrink: 0; margin-top: 3px; letter-spacing: 0.06em; }
+.step-body h4 { font-family: var(--serif); font-size: 16px; font-weight: normal; margin-bottom: 5px; }
+.step-body p { font-size: 13px; color: var(--muted); line-height: 1.65; margin-bottom: 6px; }
+.step-who { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+.tag { display: inline-block; font-family: var(--mono); font-size: 9px; padding: 2px 7px; margin-left: 10px; letter-spacing: 0.06em; border: 0.5px solid; vertical-align: middle; }
+.tag-72 { border-color: rgba(0,0,0,0.3); color: var(--muted); }
+.tag-48 { border-color: rgba(0,0,0,0.5); color: rgba(0,0,0,0.6); }
+.tag-day { border-color: var(--dark); color: var(--dark); }
+
+/* FORM */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 1.5rem; }
+.field { margin-bottom: 1.5rem; }
+.field:last-child { margin-bottom: 0; }
+.field label {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em;
+  color: var(--muted); text-transform: uppercase; display: block; margin-bottom: 8px;
+}
+input[type="text"], textarea, select {
+  width: 100%; font-family: var(--sans); font-size: 14px; color: var(--dark);
+  background: var(--light); border: 1px solid var(--border-strong);
+  padding: 11px 13px; outline: none; transition: border-color 0.15s; line-height: 1.6;
+  border-radius: 0;
+}
+input[type="text"]:focus, textarea:focus, select:focus { border-color: var(--dark); }
+textarea { resize: vertical; min-height: 90px; }
+textarea.sm { min-height: 65px; }
+
+/* PDF UPLOAD */
+.pdf-drop {
+  border: 1px dashed var(--border-strong); padding: 1.25rem; text-align: center;
+  cursor: pointer; transition: all 0.15s; background: var(--surface); position: relative;
+}
+.pdf-drop:hover, .pdf-drop.dragover { border-color: var(--dark); background: var(--light); }
+.pdf-drop input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.pdf-drop-icon { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.08em; text-transform: uppercase; }
+.pdf-drop-label { font-size: 13px; color: var(--muted); line-height: 1.5; }
+.pdf-drop-label span { font-family: var(--mono); font-size: 10px; color: var(--muted); display: block; margin-top: 3px; }
+.pdf-loaded { display: flex; align-items: center; gap: 10px; padding: 10px 13px; border: 1px solid var(--dark); background: var(--light); }
+.pdf-loaded-icon { font-family: var(--mono); font-size: 9px; background: var(--dark); color: var(--light); padding: 3px 7px; letter-spacing: 0.06em; flex-shrink: 0; }
+.pdf-loaded-name { font-size: 13px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pdf-loaded-remove { font-family: var(--mono); font-size: 10px; color: var(--muted); background: none; border: none; cursor: pointer; padding: 2px 6px; }
+.pdf-loaded-remove:hover { color: var(--dark); }
+.pdf-processing { font-family: var(--mono); font-size: 10px; color: var(--muted); padding: 4px 0; letter-spacing: 0.06em; }
+
+/* PERSONAS */
+.persona-row { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 0.5px solid var(--border); cursor: pointer; transition: opacity 0.15s; }
+.persona-row:last-child { border-bottom: none; }
+.persona-row:first-child { padding-top: 0; }
+.persona-row.inactive { opacity: 0.35; }
+.avatar {
+  width: 40px; height: 40px; border: 1px solid var(--dark);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 9px; font-weight: normal;
+  flex-shrink: 0; letter-spacing: 0.05em; text-transform: uppercase;
+  background: var(--light); color: var(--dark);
+}
+.avatar.dark { background: var(--dark); color: var(--light); }
+.persona-info { flex: 1; }
+.persona-name { font-family: var(--serif); font-size: 15px; font-weight: normal; margin-bottom: 2px; }
+.persona-desc { font-size: 12px; color: var(--muted); line-height: 1.45; }
+
+.toggle { width: 34px; height: 18px; border: 1px solid var(--border-strong); cursor: pointer; position: relative; transition: all 0.2s; flex-shrink: 0; background: var(--light); }
+.toggle.on { background: var(--dark); border-color: var(--dark); }
+.toggle::after { content: ''; position: absolute; top: 2px; width: 12px; height: 12px; background: var(--dark); transition: left 0.2s; }
+.toggle.on::after { left: 18px; background: var(--light); }
+.toggle.off::after { left: 2px; }
+
+/* BUTTONS */
+.btn-primary {
+  width: 100%; padding: 14px; font-family: var(--mono); font-size: 11px;
+  letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer;
+  border: 1px solid var(--dark); background: var(--dark); color: var(--light);
+  margin-top: 1.5rem; transition: opacity 0.15s;
+}
+.btn-primary:hover { opacity: 0.8; }
+.btn-secondary {
+  padding: 9px 16px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em;
+  text-transform: uppercase; cursor: pointer; border: 1px solid var(--border-strong);
+  background: var(--light); color: var(--muted); transition: all 0.15s;
+}
+.btn-secondary:hover { border-color: var(--dark); color: var(--dark); }
+.btn-text { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); background: none; border: none; cursor: pointer; padding: 0; text-decoration: underline; text-underline-offset: 3px; }
+.btn-text:hover { color: var(--dark); }
+
+/* SCORECARD */
+.scorecard-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 1rem; }
+.score-cell { border: 1px solid var(--border-strong); padding: 14px 8px; text-align: center; background: var(--surface); }
+.score-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; margin-bottom: 10px; line-height: 1.4; }
+.score-val { font-family: var(--serif); font-size: 26px; font-weight: normal; color: var(--dark); }
+.score-cell.danger { background: var(--dark); }
+.score-cell.danger .score-val { color: var(--light); }
+.score-cell.danger .score-label { color: var(--muted-inv); }
+.score-cell.warning { background: var(--surface); border-color: var(--dark); }
+.score-cell.warning .score-val { color: var(--dark); }
+.score-overall { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem; border: 1px solid var(--dark); margin-bottom: 1rem; background: var(--light); }
+.score-overall-label { font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+.score-overall-val { font-family: var(--serif); font-size: 36px; font-weight: normal; }
+.score-overall-val.danger { color: var(--dark); }
+.score-summary { font-size: 13px; color: var(--muted); line-height: 1.75; }
+
+/* RESULT CARDS */
+.result-card { border: 1px solid var(--border-strong); margin-bottom: 1rem; background: var(--light); }
+.result-header { display: flex; align-items: center; gap: 12px; padding: 14px 1.5rem; border-bottom: 0.5px solid var(--border); background: var(--surface); }
+.result-name { font-family: var(--serif); font-size: 15px; font-weight: normal; flex: 1; }
+.result-status { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+.result-body { padding: 1.5rem; font-size: 14px; line-height: 1.85; color: var(--dark); white-space: pre-wrap; min-height: 60px; }
+.result-body.loading { color: var(--muted); font-style: italic; font-family: var(--mono); font-size: 12px; letter-spacing: 0.04em; }
+
+/* ACTIONS */
+.actions-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 1.75rem; padding-top: 1.75rem; border-top: 1px solid var(--dark); }
+.actions-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); width: 100%; margin-bottom: 4px; }
+
+/* EMPTY */
+.empty { padding: 3.5rem 2rem; text-align: center; }
+.empty strong { font-family: var(--serif); font-size: 18px; font-weight: normal; color: var(--dark); display: block; margin-bottom: 8px; }
+.empty p { font-size: 13px; color: var(--muted); line-height: 1.7; margin-bottom: 1.5rem; }
+
+/* HISTORY */
+.history-item { display: flex; align-items: center; gap: 14px; padding: 16px 0; border-bottom: 0.5px solid var(--border); cursor: pointer; transition: opacity 0.15s; }
+.history-item:last-child { border-bottom: none; }
+.history-item:hover { opacity: 0.65; }
+.history-item-info { flex: 1; }
+.history-item-title { font-family: var(--serif); font-size: 15px; font-weight: normal; margin-bottom: 4px; }
+.history-item-meta { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+.history-score { font-family: var(--serif); font-size: 20px; width: 52px; text-align: right; flex-shrink: 0; color: var(--dark); }
+.history-delete { font-family: var(--mono); font-size: 11px; color: var(--muted); background: none; border: none; cursor: pointer; padding: 4px 8px; }
+.history-delete:hover { color: var(--dark); }
+.badge { display: inline-block; font-family: var(--mono); font-size: 9px; padding: 2px 7px; border: 0.5px solid; letter-spacing: 0.06em; text-transform: uppercase; margin-left: 8px; vertical-align: middle; }
+.badge-won { border-color: var(--dark); color: var(--dark); }
+.badge-lost { border-color: var(--muted); color: var(--muted); }
+.badge-pending { border-color: rgba(0,0,0,0.2); color: rgba(0,0,0,0.35); }
+
+/* FOOTER */
+.page-footer { border-top: 1px solid var(--dark); padding: 1.25rem 2.5rem; display: flex; align-items: center; justify-content: space-between; background: var(--light); }
+.footer-left { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+.footer-tt { font-family: var(--mono); font-size: 13px; font-weight: bold; color: var(--muted); letter-spacing: 0.05em; }
+
+@media (max-width: 620px) {
+  .header { padding: 0 1.25rem; }
+  .nav { padding: 0 1.25rem; }
+  .main { padding: 2rem 1.25rem 4rem; }
+  .intro { padding: 2rem 1.25rem; }
+  .intro h1 { font-size: 28px; }
+  .form-grid { grid-template-columns: 1fr; }
+  .scorecard-grid { grid-template-columns: repeat(3, 1fr); }
+  .page-footer { padding: 1rem 1.25rem; }
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <span class="logo">matter</span>
+    <div class="header-divider"></div>
+    <span class="header-title">Pitch Pre-Mortem</span>
+  </div>
+  <span class="header-right">v2</span>
+</header>
+
+<nav class="nav">
+  <button class="nav-tab active" onclick="switchTab('protocol')">01 — Protocolo</button>
+  <button class="nav-tab" onclick="switchTab('setup')">02 — Configurar</button>
+  <button class="nav-tab" onclick="switchTab('run')">03 — Interrogatório</button>
+  <button class="nav-tab" onclick="switchTab('history')">04 — Histórico</button>
+</nav>
+
+<main class="main">
+
+  <!-- PROTOCOL -->
+  <div class="phase visible" id="phase-protocol">
+    <div class="intro">
+      <div class="intro-eyebrow">@ MATTER + ENERGY — Pitch Pre-Mortem</div>
+      <h1>Antes de entrar na sala,<br />deixe a sala<br />te destruir.</h1>
+      <p>Um ritual de 72 horas que simula as objeções reais dos decisores antes que eles falem. Você entra mais preparado. Ou muda o deck a tempo.</p>
+    </div>
+
+    <div class="label">O ritual</div>
+    <div class="card">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-body">
+          <h4>Brief dump <span class="tag tag-72">72h antes</span></h4>
+          <p>Estratégia preenche o contexto. Brief, deck, quem estará na sala, histórico. PDFs opcionais.</p>
+          <div class="step-who">Quem → estratégia ou CS</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-body">
+          <h4>Scorecard de vulnerabilidade <span class="tag tag-72">72h antes</span></h4>
+          <p>A IA avalia o pitch em 5 dimensões. Você sabe onde está fraco antes de ouvir as personas.</p>
+          <div class="step-who">Quem → CCO</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-body">
+          <h4>Ativar personas <span class="tag tag-72">72h antes</span></h4>
+          <p>Selecione as vozes que fazem sentido. Ative a persona customizável para simular o decisor real.</p>
+          <div class="step-who">Quem → CCO ou diretora de estratégia</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">04</div>
+        <div class="step-body">
+          <h4>Interrogatório <span class="tag tag-48">48h antes</span></h4>
+          <p>Rodar o sistema. Não defender nada — só anotar. Cada objeção é um buraco a tapar.</p>
+          <div class="step-who">Quem → CCO</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">05</div>
+        <div class="step-body">
+          <h4>Ajuste e ensaio <span class="tag tag-day">véspera</span></h4>
+          <p>Time atualiza o deck baseado nas objeções. CCO roda de novo simulando a dinâmica da sala.</p>
+          <div class="step-who">Quem → time criativo + CCO</div>
+        </div>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="switchTab('setup')">Configurar meu pitch →</button>
+  </div>
+
+  <!-- SETUP -->
+  <div class="phase" id="phase-setup">
+    <div class="label">Contexto do pitch</div>
+    <div class="card">
+      <div class="form-grid">
+        <div class="field" style="margin-bottom:0;">
+          <label>Cliente</label>
+          <input type="text" id="client" placeholder="Ex: Spotify Brasil" />
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label>Tipo de pitch</label>
+          <input type="text" id="pitch-type" placeholder="Ex: Campanha de lançamento" />
+        </div>
+      </div>
+    </div>
+
+    <div class="label">Brief</div>
+    <div class="card">
+      <div class="field">
+        <label>Brief / objetivo do pitch</label>
+        <textarea id="brief" placeholder="O que o cliente quer resolver? Cole o brief ou escreva o objetivo central."></textarea>
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>Brief em PDF — <span style="font-family:var(--sans);font-size:11px;color:var(--muted);text-transform:none;letter-spacing:0;font-weight:normal;">complementa o texto acima</span></label>
+        <div id="brief-pdf-drop-zone" class="pdf-drop">
+          <input type="file" accept="application/pdf" id="brief-pdf-input" onchange="handlePdfFile(this.files[0],'brief')" />
+          <div class="pdf-drop-icon">PDF</div>
+          <div class="pdf-drop-label">Arraste o brief aqui ou clique para selecionar<span>Máximo 10MB</span></div>
+        </div>
+        <div id="brief-pdf-status" style="margin-top:8px;display:none;"></div>
+      </div>
+    </div>
+
+    <div class="label">Deck</div>
+    <div class="card">
+      <div class="field">
+        <label>O que está no deck</label>
+        <textarea id="deck" placeholder="Descreva a proposta: territórios criativos, conceito, execuções, budget se relevante."></textarea>
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>Deck em PDF — <span style="font-family:var(--sans);font-size:11px;color:var(--muted);text-transform:none;letter-spacing:0;font-weight:normal;">complementa o texto acima</span></label>
+        <div id="deck-pdf-drop-zone" class="pdf-drop">
+          <input type="file" accept="application/pdf" id="deck-pdf-input" onchange="handlePdfFile(this.files[0],'deck')" />
+          <div class="pdf-drop-icon">PDF</div>
+          <div class="pdf-drop-label">Arraste o deck aqui ou clique para selecionar<span>Máximo 10MB</span></div>
+        </div>
+        <div id="deck-pdf-status" style="margin-top:8px;display:none;"></div>
+      </div>
+    </div>
+
+    <div class="label">A sala e o contexto</div>
+    <div class="card">
+      <div class="field">
+        <label>Quem estará na sala</label>
+        <textarea class="sm" id="room" placeholder="Nome, cargo, o que você sabe. Quem decide? Quem é aliado? Quem é obstáculo?"></textarea>
+      </div>
+      <div class="field">
+        <label>Histórico / relacionamento</label>
+        <textarea class="sm" id="history-ctx" placeholder="O que já aconteceu com esse cliente? Vitórias, atritos, promessas, expectativas não cumpridas."></textarea>
+      </div>
+    </div>
+
+    <div class="label" style="margin-top:2rem;">Personas ativas</div>
+    <div class="card">
+      <div class="persona-row on" onclick="toggleP('p1')" id="row-p1">
+        <div class="avatar">CMO</div>
+        <div class="persona-info"><div class="persona-name">O CMO cético</div><div class="persona-desc">Já tem uma agência que ama. Você precisa provar que vale a mudança.</div></div>
+        <button class="toggle on" id="t-p1"></button>
+      </div>
+      <div class="persona-row on" onclick="toggleP('p2')" id="row-p2">
+        <div class="avatar">CFO</div>
+        <div class="persona-info"><div class="persona-name">O CFO implacável</div><div class="persona-desc">Só enxerga ROI. Cada slide vira uma planilha na cabeça dele.</div></div>
+        <button class="toggle on" id="t-p2"></button>
+      </div>
+      <div class="persona-row on" onclick="toggleP('p3')" id="row-p3">
+        <div class="avatar">RISK</div>
+        <div class="persona-info"><div class="persona-name">A consultora de risco</div><div class="persona-desc">Encontra o que pode dar errado em qualquer ideia. É paga para isso.</div></div>
+        <button class="toggle on" id="t-p3"></button>
+      </div>
+      <div class="persona-row inactive" onclick="toggleP('p4')" id="row-p4">
+        <div class="avatar">JUR</div>
+        <div class="persona-info"><div class="persona-name">O jurídico paranóico</div><div class="persona-desc">Vê risco de marca, reputação e compliance em tudo.</div></div>
+        <button class="toggle off" id="t-p4"></button>
+      </div>
+      <div class="persona-row inactive" onclick="toggleP('p5')" id="row-p5">
+        <div class="avatar">MID</div>
+        <div class="persona-info"><div class="persona-name">O gerente de middle management</div><div class="persona-desc">Pensa na política interna. Tem que vender isso para o chefe.</div></div>
+        <button class="toggle off" id="t-p5"></button>
+      </div>
+      <div class="persona-row inactive" onclick="toggleP('p6')" id="row-p6" style="align-items:flex-start;padding-top:16px;">
+        <div class="avatar dark" style="margin-top:2px;">?</div>
+        <div class="persona-info" style="flex:1;">
+          <div class="persona-name" style="margin-bottom:4px;">Persona customizável <span style="font-family:var(--mono);font-size:9px;color:var(--muted);font-weight:normal;margin-left:6px;letter-spacing:0.06em;">o decisor real</span></div>
+          <div class="persona-desc" style="margin-bottom:12px;">Baseada em alguém específico da sala. Quanto mais contexto, mais precisa.</div>
+          <div id="custom-persona-fields" style="display:none;">
+            <div class="field" style="margin-bottom:10px;">
+              <label>Nome e cargo</label>
+              <input type="text" id="custom-name" placeholder="Ex: Ana Lima, VP de Marketing" onclick="event.stopPropagation()" />
+            </div>
+            <div class="field" style="margin-bottom:0;">
+              <label>O que você sabe sobre ela</label>
+              <textarea class="sm" id="custom-context" placeholder="Histórico, medos, agenda política, o que ela já disse, o que te preocupa..." onclick="event.stopPropagation()" style="min-height:70px;"></textarea>
+            </div>
+          </div>
+        </div>
+        <button class="toggle off" id="t-p6" style="margin-top:2px;"></button>
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="runAll()">Gerar scorecard + rodar interrogatório →</button>
+  </div>
+
+  <!-- RUN -->
+  <div class="phase" id="phase-run">
+    <div id="run-empty" class="card" style="display:block;">
+      <div class="empty">
+        <strong>Nenhum interrogatório rodado ainda</strong>
+        <p>Configure o pitch e clique em "Gerar scorecard + rodar interrogatório".</p>
+        <button class="btn-text" onclick="switchTab('setup')">← voltar para configuração</button>
+      </div>
+    </div>
+    <div id="scorecard-section" style="display:none;">
+      <div class="label">Scorecard de vulnerabilidade</div>
+      <div id="scorecard-content"></div>
+    </div>
+    <div id="run-results"></div>
+    <div id="run-actions" style="display:none;">
+      <div class="actions-row">
+        <div class="actions-label">Próximos passos</div>
+        <button class="btn-secondary" onclick="switchTab('setup')">← ajustar contexto</button>
+        <button class="btn-secondary" onclick="askClaude('Quais as 3 objeções mais críticas e como responder a cada uma na sala?')">priorizar objeções</button>
+        <button class="btn-secondary" onclick="askClaude('O que precisa mudar no deck com base nas objeções? Em ordem de prioridade.')">o que mudar no deck</button>
+        <button class="btn-secondary" onclick="askClaude('Simule a dinâmica da sala. Quem vai falar quando? Qual é o momento mais perigoso?')">simular a sala</button>
+        <button class="btn-secondary" onclick="savePitch()">salvar no histórico</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="phase" id="phase-history">
+    <div class="label">Pitches anteriores</div>
+    <div id="history-empty" class="card" style="display:none;">
+      <div class="empty">
+        <strong>Nenhum pitch salvo ainda</strong>
+        <p>Rode o interrogatório e clique em "salvar no histórico".</p>
+      </div>
+    </div>
+    <div id="history-list"></div>
+    <div id="history-detail" style="display:none;">
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:2rem;flex-wrap:wrap;">
+        <button class="btn-text" onclick="closeDetail()">← voltar</button>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:10px;">
+          <span style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;">Resultado</span>
+          <select id="detail-outcome" onchange="updateOutcome()" style="width:auto;padding:7px 12px;font-size:12px;font-family:var(--mono);letter-spacing:0.06em;">
+            <option value="pending">Em andamento</option>
+            <option value="won">Ganhamos</option>
+            <option value="lost">Perdemos</option>
+          </select>
+        </div>
+      </div>
+      <div id="detail-content"></div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="page-footer">
+  <span class="footer-left">@ MATTER + ENERGY</span>
+  <span class="footer-tt">tt</span>
+</footer>
+
+<script>
+const personas = {
+  p1:{ on:true,  label:'CMO cético',            abbr:'CMO',
+       prompt:'Você é um CMO que já tem uma agência que ama. Está nessa reunião porque precisou. Analise o pitch e liste objeções reais. Nunca elogie.' },
+  p2:{ on:true,  label:'CFO implacável',         abbr:'CFO',
+       prompt:'Você é um CFO. Cada slide é uma planilha. Analise ROI, budget, riscos financeiros, o que é prometido vs o que pode ser mensurado.' },
+  p3:{ on:true,  label:'Consultora de risco',    abbr:'RISK',
+       prompt:'Você é consultora de riscos. Encontre o que pode dar errado — execução, reputação, timing, dependências. Liste riscos que a agência não mencionou.' },
+  p4:{ on:false, label:'Jurídico paranóico',     abbr:'JUR',
+       prompt:'Você é o head jurídico. Vê risco de marca, compliance e reputação em tudo. Identifique o que pode virar problema.' },
+  p5:{ on:false, label:'Middle management',      abbr:'MID',
+       prompt:'Você vai aprovar isso internamente. Não pensa na ideia — pensa na política. O que vai ser difícil de vender ao chefe?' },
+  p6:{ on:false, label:'Persona customizável',   abbr:'?', prompt:'' },
+};
+
+let lastContext='', lastScorecardData=null, currentDetailId=null;
+let pdfs={ brief:{base64:null,name:''}, deck:{base64:null,name:''} };
+
+function switchTab(name) {
+  document.querySelectorAll('.phase').forEach(p=>p.classList.remove('visible'));
+  document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('phase-'+name).classList.add('visible');
+  const map={protocol:0,setup:1,run:2,history:3};
+  document.querySelectorAll('.nav-tab')[map[name]].classList.add('active');
+  window.scrollTo(0,0);
+  if(name==='history') renderHistory();
+}
+
+function toggleP(id) {
+  personas[id].on=!personas[id].on;
+  document.getElementById('t-'+id).className='toggle '+(personas[id].on?'on':'off');
+  document.getElementById('row-'+id).className='persona-row '+(personas[id].on?'on':'inactive')+(id==='p6'?' custom':'');
+  if(id==='p6') {
+    document.getElementById('row-p6').style.alignItems='flex-start';
+    document.getElementById('custom-persona-fields').style.display=personas[id].on?'block':'none';
+  }
+}
+
+function handlePdfFile(file,type) {
+  if(!file) return;
+  if(file.size>10*1024*1024){alert('Máximo 10MB.');return;}
+  const dz=document.getElementById(type+'-pdf-drop-zone'), st=document.getElementById(type+'-pdf-status');
+  st.style.display='block'; st.innerHTML='<div class="pdf-processing">Lendo arquivo...</div>';
+  pdfs[type].name=file.name;
+  const r=new FileReader();
+  r.onload=e=>{
+    pdfs[type].base64=e.target.result.split(',')[1];
+    dz.style.display='none';
+    st.innerHTML=`<div class="pdf-loaded"><span class="pdf-loaded-icon">PDF</span><span class="pdf-loaded-name">${file.name}</span><button class="pdf-loaded-remove" onclick="removePdf('${type}')">Remover</button></div>`;
+  };
+  r.onerror=()=>{st.innerHTML='<div class="pdf-processing">Erro. Tente novamente.</div>';};
+  r.readAsDataURL(file);
+  dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('dragover');});
+  dz.addEventListener('dragleave',()=>dz.classList.remove('dragover'));
+  dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dragover');if(e.dataTransfer.files[0])handlePdfFile(e.dataTransfer.files[0],type);});
+}
+
+function removePdf(type) {
+  pdfs[type]={base64:null,name:''};
+  document.getElementById(type+'-pdf-drop-zone').style.display='block';
+  document.getElementById(type+'-pdf-input').value='';
+  const s=document.getElementById(type+'-pdf-status'); s.style.display='none'; s.innerHTML='';
+}
+
+function buildContext() {
+  const client=document.getElementById('client').value.trim()||'não informado';
+  const type=document.getElementById('pitch-type').value.trim()||'pitch';
+  const brief=document.getElementById('brief').value.trim();
+  const deck=document.getElementById('deck').value.trim();
+  const room=document.getElementById('room').value.trim();
+  const hist=document.getElementById('history-ctx').value.trim();
+  const bp=pdfs.brief.base64?` [PDF "${pdfs.brief.name}" anexado]`:'';
+  const dp=pdfs.deck.base64?` [PDF "${pdfs.deck.name}" anexado]`:'';
+  return `CLIENTE: ${client}\nTIPO: ${type}\nBRIEF: ${brief||'não informado'}${bp}\nDECK: ${deck||'não informado'}${dp}\nSALA: ${room||'não informado'}\nHISTÓRICO: ${hist||'não informado'}`;
+}
+
+function buildContent(text) {
+  if(pdfs.brief.base64||pdfs.deck.base64) {
+    const parts=[];
+    if(pdfs.brief.base64) parts.push({type:'document',source:{type:'base64',media_type:'application/pdf',data:pdfs.brief.base64},title:'Brief PDF'});
+    if(pdfs.deck.base64) parts.push({type:'document',source:{type:'base64',media_type:'application/pdf',data:pdfs.deck.base64},title:'Deck PDF'});
+    parts.push({type:'text',text}); return parts;
+  }
+  return text;
+}
+
+async function callClaude(system,userText,withPdfs=false) {
+  const content=withPdfs?buildContent(userText):userText;
+  const res=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,
+      system:system+'\n\nResponda em português brasileiro. Direto e específico. Máximo 300 palavras.',
+      messages:[{role:'user',content}]})
+  });
+  const data=await res.json();
+  return data.content?.find(b=>b.type==='text')?.text||'Erro ao processar.';
+}
+
+async function runAll() {
+  const brief=document.getElementById('brief').value.trim();
+  const deck=document.getElementById('deck').value.trim();
+  if(!brief&&!deck&&!pdfs.brief.base64&&!pdfs.deck.base64){alert('Preencha pelo menos um campo ou faça upload de um PDF.');return;}
+  if(personas.p6.on){
+    const name=document.getElementById('custom-name').value.trim();
+    const ctx=document.getElementById('custom-context').value.trim();
+    if(!name){alert('Preencha o nome da persona customizável.');return;}
+    personas.p6.label=name.split(',')[0].trim();
+    personas.p6.abbr=personas.p6.label.substring(0,3).toUpperCase();
+    personas.p6.prompt=`Você é ${name}. ${ctx?'Contexto: '+ctx+'.':''} Analise o pitch com suas prioridades, medos e agenda política específicos. Seja implacável.`;
+  }
+  const active=Object.entries(personas).filter(([k,v])=>v.on);
+  if(active.length===0){alert('Ative pelo menos uma persona.');return;}
+
+  lastContext=buildContext();
+  switchTab('run');
+  document.getElementById('run-empty').style.display='none';
+  document.getElementById('run-actions').style.display='none';
+  document.getElementById('run-results').innerHTML='';
+  document.getElementById('scorecard-section').style.display='block';
+  document.getElementById('scorecard-content').innerHTML='<div class="card"><div class="result-body loading">Avaliando vulnerabilidades do pitch...</div></div>';
+  lastScorecardData=null;
+
+  // Scorecard
+  callClaude(
+    `Avalie o pitch em 5 dimensões (notas 0-10). Responda SOMENTE JSON válido, sem markdown, sem texto adicional:
+{"clareza":{"nota":7,"comentario":"breve"},"diferenciacao":{"nota":5,"comentario":"breve"},"viabilidade":{"nota":8,"comentario":"breve"},"fit_cliente":{"nota":6,"comentario":"breve"},"risco_criativo":{"nota":4,"comentario":"breve"},"overall":{"nota":6,"resumo":"2-3 frases sobre onde o pitch está mais vulnerável"}}`,
+    'Avalie:\n\n'+lastContext+(pdfs.brief.base64||pdfs.deck.base64?'\n\nPDFs anexados.':''),
+    true
+  ).then(raw=>{
+    try {
+      const d=JSON.parse(raw.replace(/```json|```/g,'').trim());
+      lastScorecardData=d;
+      const sc=n=>n<=4?'danger':n<=6?'warning':'ok';
+      const dims=[['clareza','Clareza'],['diferenciacao','Diferenciação'],['viabilidade','Viabilidade'],['fit_cliente','Fit cliente'],['risco_criativo','Risco criativo']];
+      document.getElementById('scorecard-content').innerHTML=`
+        <div class="score-overall"><span class="score-overall-label">Nota geral</span><span class="score-overall-val">${d.overall.nota}/10</span></div>
+        <div class="scorecard-grid">${dims.map(([k,l])=>`<div class="score-cell ${sc(d[k].nota)}"><div class="score-label">${l}</div><div class="score-val">${d[k].nota}</div></div>`).join('')}</div>
+        <div class="card"><p class="score-summary">${d.overall.resumo}</p></div>`;
+    } catch { document.getElementById('scorecard-content').innerHTML='<div class="card"><div class="result-body loading">Não foi possível gerar o scorecard.</div></div>'; }
+  }).catch(()=>{document.getElementById('scorecard-content').innerHTML='<div class="card"><div class="result-body loading">Erro ao gerar scorecard.</div></div>';});
+
+  // Personas
+  const pdfNote=(pdfs.brief.base64||pdfs.deck.base64)?'\n\nPDFs anexados — analise junto com o contexto.':'';
+  const userMsg='Analise este pitch e dê suas objeções reais em 3 a 5 itens numerados:\n\n'+lastContext+pdfNote;
+  let done=0;
+  for(const [id,p] of active) {
+    const el=document.createElement('div'); el.className='result-card';
+    el.innerHTML=`<div class="result-header"><div class="avatar" style="width:40px;height:40px;border:1px solid var(--dark);display:flex;align-items:center;justify-content:center;font-family:'Courier New',monospace;font-size:9px;flex-shrink:0;letter-spacing:0.05em;text-transform:uppercase;">${p.abbr}</div><span class="result-name">${p.label}</span><span class="result-status" id="status-${id}">analisando</span></div><div class="result-body loading" id="body-${id}">Aguarde...</div>`;
+    document.getElementById('run-results').appendChild(el);
+    callClaude(p.prompt,userMsg,true)
+      .then(text=>{
+        document.getElementById('body-'+id).textContent=text;
+        document.getElementById('body-'+id).classList.remove('loading');
+        document.getElementById('status-'+id).textContent='concluído';
+        if(++done===active.length) document.getElementById('run-actions').style.display='block';
+      })
+      .catch(()=>{
+        document.getElementById('body-'+id).textContent='Erro. Tente novamente.';
+        document.getElementById('body-'+id).classList.remove('loading');
+        document.getElementById('status-'+id).textContent='erro';
+        if(++done===active.length) document.getElementById('run-actions').style.display='block';
+      });
+  }
+}
+
+function askClaude(question) {
+  if(!lastContext){alert('Rode o interrogatório primeiro.');return;}
+  let rt=''; document.querySelectorAll('.result-body').forEach(el=>{rt+=el.textContent+'\n\n';});
+  const uid='q'+Date.now();
+  const card=document.createElement('div'); card.className='result-card';
+  card.innerHTML=`<div class="result-header"><span class="result-name" style="font-style:italic;">${question.substring(0,60)}...</span><span class="result-status" id="status-${uid}">analisando</span></div><div class="result-body loading" id="body-${uid}">Aguarde...</div>`;
+  document.getElementById('run-results').appendChild(card);
+  card.scrollIntoView({behavior:'smooth',block:'start'});
+  callClaude('Você é estrategista criativo sênior. Responda de forma direta e acionável.',`PITCH:\n${lastContext}\n\nINTERROGATÓRIO:\n${rt}\n\nPERGUNTA: ${question}`)
+    .then(t=>{document.getElementById('body-'+uid).textContent=t;document.getElementById('body-'+uid).classList.remove('loading');document.getElementById('status-'+uid).textContent='concluído';})
+    .catch(()=>{document.getElementById('body-'+uid).textContent='Erro.';document.getElementById('body-'+uid).classList.remove('loading');});
+}
+
+function getHistory(){try{return JSON.parse(localStorage.getItem('pm_history')||'[]');}catch{return[];}}
+function saveHistory(h){localStorage.setItem('pm_history',JSON.stringify(h));}
+
+function savePitch(){
+  if(!lastContext){alert('Nenhum interrogatório rodado.');return;}
+  let rt=''; document.querySelectorAll('.result-body').forEach(el=>{rt+=el.textContent+'\n\n';});
+  const h=getHistory();
+  h.unshift({id:Date.now(),date:new Date().toLocaleDateString('pt-BR'),
+    client:document.getElementById('client').value.trim()||'Cliente',
+    type:document.getElementById('pitch-type').value.trim()||'Pitch',
+    context:lastContext,scorecard:lastScorecardData,results:rt,outcome:'pending'});
+  saveHistory(h); alert('Pitch salvo.'); switchTab('history');
+}
+
+function renderHistory(){
+  const h=getHistory();
+  document.getElementById('history-detail').style.display='none';
+  document.getElementById('history-list').style.display='block';
+  if(h.length===0){document.getElementById('history-empty').style.display='block';document.getElementById('history-list').innerHTML='';return;}
+  document.getElementById('history-empty').style.display='none';
+  const bm={pending:'badge-pending',won:'badge-won',lost:'badge-lost'};
+  const bl={pending:'em andamento',won:'ganhou',lost:'perdeu'};
+  document.getElementById('history-list').innerHTML='<div class="card">'+h.map(e=>{
+    const s=e.scorecard?.overall?.nota;
+    return `<div class="history-item" onclick="openDetail(${e.id})">
+      <div class="history-item-info"><div class="history-item-title">${e.client} — ${e.type} <span class="badge ${bm[e.outcome]}">${bl[e.outcome]}</span></div><div class="history-item-meta">${e.date}</div></div>
+      <span class="history-score">${s!=null?s+'/10':'—'}</span>
+      <button class="history-delete" onclick="event.stopPropagation();deletePitch(${e.id})">✕</button>
+    </div>`;
+  }).join('')+'</div>';
+}
+
+function openDetail(id){
+  const e=getHistory().find(x=>x.id===id); if(!e) return;
+  currentDetailId=id;
+  document.getElementById('history-list').style.display='none';
+  document.getElementById('history-empty').style.display='none';
+  document.getElementById('history-detail').style.display='block';
+  document.getElementById('detail-outcome').value=e.outcome;
+  const sc=n=>n<=4?'danger':n<=6?'warning':'ok';
+  const dims=[['clareza','Clareza'],['diferenciacao','Diferenciação'],['viabilidade','Viabilidade'],['fit_cliente','Fit cliente'],['risco_criativo','Risco criativo']];
+  const scHtml=e.scorecard?`
+    <div class="label">Scorecard</div>
+    <div class="card">
+      <div class="score-overall" style="margin-bottom:1rem;"><span class="score-overall-label">Nota geral</span><span class="score-overall-val">${e.scorecard.overall.nota}/10</span></div>
+      <div class="scorecard-grid" style="margin-bottom:1rem;">${dims.map(([k,l])=>`<div class="score-cell ${sc(e.scorecard[k].nota)}"><div class="score-label">${l}</div><div class="score-val">${e.scorecard[k].nota}</div></div>`).join('')}</div>
+      <p class="score-summary">${e.scorecard.overall.resumo}</p>
+    </div>`:'';
+  document.getElementById('detail-content').innerHTML=`
+    <div class="label">Contexto</div><div class="card"><p style="font-size:13px;color:var(--muted);line-height:1.75;white-space:pre-wrap;">${e.context}</p></div>
+    ${scHtml}
+    <div class="label">Interrogatório</div><div class="card"><p style="font-size:14px;line-height:1.85;white-space:pre-wrap;">${e.results}</p></div>`;
+}
+
+function closeDetail(){currentDetailId=null;document.getElementById('history-detail').style.display='none';renderHistory();}
+
+function updateOutcome(){
+  if(!currentDetailId) return;
+  const h=getHistory(); const e=h.find(x=>x.id===currentDetailId);
+  if(e){e.outcome=document.getElementById('detail-outcome').value;saveHistory(h);}
+}
+
+function deletePitch(id){
+  if(!confirm('Remover este pitch do histórico?')) return;
+  saveHistory(getHistory().filter(x=>x.id!==id)); renderHistory();
+}
+</script>
+</body>
+</html>
